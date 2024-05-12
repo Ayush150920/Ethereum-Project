@@ -63,10 +63,27 @@ abi = [
         "outputs": [],
         "stateMutability": "payable",
         "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "approveLoan",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "declineLoan",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
     }
 ]
 
-contract_address = "0x7f07c72eC543beaf3635D122a1E7593D24D9B5aD"  # Update with correct contract address
+contract_address = "0x1AA7797CCEcB67e18A4B3F14D09e9f26A0d6EcF1"  # Update with correct contract address
+
+# Minimum monthly income required for loan approval
+MINIMUM_MONTHLY_INCOME = 5000
 
 # Streamlit app
 st.title("Smart Contract Data Viewer")
@@ -97,17 +114,40 @@ if web3.is_connected():
     monthly_payment_input = st.number_input("Monthly Payment", min_value=1)
     homeowner_address_input = st.text_input("Homeowner Address")
 
-    if st.button("Submit Loan"):
+    # Check if monthly income meets minimum requirement
+    monthly_income_input = st.number_input("Monthly Income", min_value=0)
+    if monthly_income_input >= MINIMUM_MONTHLY_INCOME:
+        if st.button("Submit Loan"):
+            try:
+                # Get the first account from the node
+                account = web3.eth.accounts[0]
+
+                # Send transaction from the specified account
+                tx_hash = contract.functions.submitLoan(loan_amount_input, monthly_payment_input, homeowner_address_input).transact({"from": account})
+
+                st.success(f"Loan submitted. Transaction hash: {tx_hash.hex()}")
+            except Exception as e:
+                st.error(f"Error submitting loan: {str(e)}")
+    else:
+        st.error("Your monthly income is below the minimum requirement for loan approval.")
+
+    # Loan approval and decline buttons
+    st.subheader("Loan Approval and Decline")
+    if st.button("Approve Loan"):
         try:
-            # Get the first account from the node
             account = web3.eth.accounts[0]
-
-            # Send transaction from the specified account
-            tx_hash = contract.functions.submitLoan(loan_amount_input, monthly_payment_input, homeowner_address_input).transact({"from": account})
-
-            st.success(f"Loan submitted. Transaction hash: {tx_hash.hex()}")
+            tx_hash = contract.functions.approveLoan().transact({"from": account})
+            st.success(f"Loan approved. Transaction hash: {tx_hash.hex()}")
         except Exception as e:
-            st.error(f"Error submitting loan: {str(e)}")
+            st.error(f"Error approving loan: {str(e)}")
+
+    if st.button("Decline Loan"):
+        try:
+            account = web3.eth.accounts[0]
+            tx_hash = contract.functions.declineLoan().transact({"from": account})
+            st.success(f"Loan declined. Transaction hash: {tx_hash.hex()}")
+        except Exception as e:
+            st.error(f"Error declining loan: {str(e)}")
 
     # Make payment form
     st.subheader("Make Payment")
